@@ -10,7 +10,10 @@ import python from "react-syntax-highlighter/dist/esm/languages/hljs/python";
 import java from "react-syntax-highlighter/dist/esm/languages/hljs/java";
 import cpp from "react-syntax-highlighter/dist/esm/languages/hljs/cpp";
 import csharp from "react-syntax-highlighter/dist/esm/languages/hljs/csharp";
-import { atomOneDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import { atomOneDark, atomOneLight } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
 
 SyntaxHighlighter.registerLanguage("javascript", js);
 SyntaxHighlighter.registerLanguage("python", python);
@@ -31,6 +34,19 @@ function App() {
   const [showSignup, setShowSignup] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
 
+   /* ---------------- THEME ---------------- */
+   const [theme, setTheme] = useState(
+    localStorage.getItem("theme") || "dark"
+  );
+
+  useEffect(() => {
+  if (theme === "dark") {
+    document.documentElement.classList.add("dark");
+  } else {
+    document.documentElement.classList.remove("dark");
+  }
+}, [theme]);
+
   /* ---------------- CHAT STATE ---------------- */
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -44,9 +60,10 @@ function App() {
   const [editedTitle, setEditedTitle] = useState("");
 
   const [search, setSearch] = useState("");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 768);
 
   const messagesEndRef = useRef(null);
+  const textareaRef = useRef(null);
 
   /* ---------------- AUTO SCROLL ---------------- */
   useEffect(() => {
@@ -175,12 +192,17 @@ function App() {
 
     const userCode = input;
     setInput("");
+    // Reset textarea height back to normal
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
+
 
     // Show user + thinking
     setMessages((prev) => [
       ...prev,
       { role: "user", content: userCode, language: "text" },
-      { role: "assistant", content: "Thinking..." },
+      { role: "assistant", content: "__LOADING__" },
     ]);
 
     // Save user msg
@@ -242,12 +264,21 @@ function App() {
 
   /* ---------------- FORMAT EXPLANATION ---------------- */
   const formatExplanation = (text) => {
-    return text.split("\n").map((line, i) => (
-      <p key={i} className="text-slate-300 mb-2 leading-relaxed">
-        {line}
-      </p>
-    ));
-  };
+  return text.split("\n").map((line, i) => (
+    <p
+      key={i}
+      className="
+        mb-2
+        leading-relaxed
+        text-[var(--text)]
+        break-words
+        whitespace-pre-wrap
+      "
+    >
+      {line}
+    </p>
+  ));
+};
 
   /* ---------------- AUTH SCREENS ---------------- */
   if (!isAuth) {
@@ -277,161 +308,241 @@ function App() {
 
   /* ---------------- MAIN UI ---------------- */
   return (
-    <div className="flex h-screen bg-slate-900">
-      {/* Sidebar */}
-      {isSidebarOpen && (
-        <div className="w-64 bg-slate-950 p-4 border-r border-slate-800">
-          <input
-            placeholder="Search chats..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full mb-3 px-3 py-2 rounded bg-slate-800 text-white text-sm"
-          />
+  <div className="flex h-screen bg-[var(--bg)] text-[var(--text)] overflow-hidden">
+    
+    {/* ✅ Sidebar Overlay (Mobile Only) */}
+    {isSidebarOpen && (
+      <div
+        className="fixed inset-0 bg-black/40 z-40 md:hidden"
+        onClick={() => setIsSidebarOpen(false)}
+      />
+    )}
 
-          <button
-            onClick={createNewThread}
-            className="w-full bg-cyan-500 mb-4 py-2 rounded font-semibold"
-          >
-            + New Chat
-          </button>
+    {/* ✅ Sidebar */}
+    <div
+      className={`
+        bg-[var(--sidebar)] border-r border-[var(--card)]
+        transition-all duration-300
+        flex flex-col
 
-          {threads
-            .filter((t) =>
-              t.title.toLowerCase().includes(search.toLowerCase())
-            )
-            .map((t) => (
-              <div key={t._id} className="mb-2">
-                {editingThreadId === t._id ? (
-                  <input
-                    value={editedTitle}
-                    autoFocus
-                    onChange={(e) => setEditedTitle(e.target.value)}
-                    onBlur={() => saveThreadTitle(t._id)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") saveThreadTitle(t._id);
-                      if (e.key === "Escape") setEditingThreadId(null);
-                    }}
-                    className="w-full bg-slate-800 text-white px-2 py-1 rounded"
-                  />
-                ) : (
-                  <div
-                    className="flex justify-between items-center p-2 rounded cursor-pointer hover:bg-slate-800 text-slate-300"
-                    onClick={() => loadThread(t)}
-                    onDoubleClick={() => {
-                      setEditingThreadId(t._id);
-                      setEditedTitle(t.title);
-                    }}
-                  >
-                    <span className="truncate">{t.title}</span>
+        /* Desktop: push layout */
+        ${isSidebarOpen ? "w-64" : "w-0"}
+        hidden md:flex overflow-hidden
 
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteThread(t._id);
-                      }}
-                      className="text-red-400 hover:text-red-300"
-                    >
-                      🗑
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
-        </div>
-      )}
+        /* Mobile: overlay */
+        fixed md:static top-0 left-0 z-50 h-full w-64
+        transform md:transform-none
+        ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
+        md:translate-x-0
+      `}
+    >
+      {/* ✅ Close Button (Mobile Only) */}
+      <div className="flex justify-between items-center mb-4 md:hidden">
+        <h2 className="font-bold text-[var(--primary)]">Chats</h2>
+        <button
+          onClick={() => setIsSidebarOpen(false)}
+          className="text-xl font-bold"
+        >
+          ✕
+        </button>
+      </div>
 
-      {/* Chat */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <div className="p-4 flex justify-between border-b border-slate-700">
-          <button
-            onClick={() => setIsSidebarOpen((p) => !p)}
-            className="text-white text-xl"
-          >
-            ☰
-          </button>
+      {/* Search */}
+      <input
+        placeholder="Search chats..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="w-full mb-3 px-3 py-2 rounded bg-[var(--card)] text-sm"
+      />
 
-          <div className="flex-1 text-center">
-            <h1 className="text-cyan-400 text-xl font-bold">
-              CodeInsight — Code Explainer
-            </h1>
+      {/* New Chat */}
+      <button
+        onClick={createNewThread}
+        className="w-full bg-[var(--primary)] text-white mb-4 py-2 rounded font-semibold hover:bg-[var(--primary-dark)]"
+      >
+        + New Chat
+      </button>
 
-            {user && (
-              <p className="text-slate-400 text-sm">
-                Hello, {user.name}
-              </p>
-            )}
-          </div>
-
-
-          <button
-            onClick={handleLogout}
-            className="text-red-400 hover:text-red-300"
-          >
-            Logout
-          </button>
-        </div>
-
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {messages.map((msg, i) => (
-            <div key={i} className="mb-4">
-              {msg.role === "user" ? (
-                <SyntaxHighlighter
-                  language={mapLanguage(msg.language)}
-                  style={atomOneDark}
-                  showLineNumbers
-                >
-                  {msg.content}
-                </SyntaxHighlighter>
+      {/* ✅ Threads Scroll */}
+      <div className="overflow-y-auto h-[75vh] pr-1">
+        {threads
+          .filter((t) =>
+            t.title.toLowerCase().includes(search.toLowerCase())
+          )
+          .map((t) => (
+            <div key={t._id} className="mb-2">
+              
+              {/* ✅ Rename Mode */}
+              {editingThreadId === t._id ? (
+                <input
+                  value={editedTitle}
+                  autoFocus
+                  onChange={(e) => setEditedTitle(e.target.value)}
+                  onBlur={() => saveThreadTitle(t._id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") saveThreadTitle(t._id);
+                    if (e.key === "Escape") setEditingThreadId(null);
+                  }}
+                  className="w-full bg-[var(--card)] text-[var(--text)] px-2 py-1 rounded"
+                />
               ) : (
-                <div className="bg-slate-800 p-4 rounded-lg">
-                  {formatExplanation(msg.content)}
-                  {isTyping && <span className="animate-pulse">▍</span>}
+                <div
+                  className="flex justify-between items-center p-2 rounded cursor-pointer hover:bg-[var(--card)]"
+                  onClick={() => {
+                    loadThread(t);
+
+                    // ✅ Auto-close ONLY on mobile
+                    if (window.innerWidth < 768) {
+                      setIsSidebarOpen(false);
+                    }
+                  }}
+                  onDoubleClick={() => {
+                    setEditingThreadId(t._id);
+                    setEditedTitle(t.title);
+                  }}
+                >
+                  <span className="truncate">{t.title}</span>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteThread(t._id);
+                    }}
+                    className="text-red-400 hover:text-red-300"
+                  >
+                    🗑
+                  </button>
                 </div>
               )}
             </div>
           ))}
-          <div ref={messagesEndRef} />
+      </div>
+    </div>
+
+    {/* ✅ Main Chat Area */}
+    <div className="flex-1 flex flex-col h-full">
+
+      {/* ✅ Header */}
+      <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--card)] shrink-0">
+
+        {/* Sidebar Toggle */}
+        <button
+          onClick={() => setIsSidebarOpen((p) => !p)}
+          className="text-xl"
+        >
+          ☰
+        </button>
+
+        {/* Title */}
+        <div className="flex-1 text-center">
+          <h1 className="text-[var(--primary)] font-bold text-base md:text-xl">
+            CodeInsight
+          </h1>
+
+          {user && (
+            <p className="text-xs text-[var(--primary-dark)]">
+              Hello, {user.name} 
+            </p>
+          )}
         </div>
 
-        {/* Input */}
-        <div className="p-4 border-t border-slate-700">
-          <div className="relative w-full">
-            {/* Expanding Textarea */}
-            <textarea
-              value={input}
-              placeholder="Paste your code here..."
-              rows={1}
-              className="w-full bg-slate-800 text-white p-3 pr-16 rounded-lg resize-none focus:outline-none overflow-hidden"
-              style={{ maxHeight: "200px" }}
-              onChange={(e) => {
-                setInput(e.target.value);
+        {/* Buttons */}
+        <div className="flex gap-2">
+          <button
+            onClick={() =>
+              setTheme(theme === "dark" ? "light" : "dark")
+            }
+            className="bg-[var(--primary)] text-white px-3 py-2 rounded text-xs"
+          >
+            {theme === "dark" ? "☀" : "🌙"}
+          </button>
 
-                // Auto-expand
-                e.target.style.height = "auto";
-                e.target.style.height = `${e.target.scrollHeight}px`;
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
-            />
+          <button
+            onClick={handleLogout}
+            className="bg-[var(--primary)] text-white px-3 py-1 rounded text-xs"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
 
-            {/* Send Button INSIDE */}
-            <button
-              onClick={handleSend}
-              className="absolute bottom-2 right-2 bg-cyan-500 px-4 py-2 rounded-lg font-semibold hover:bg-cyan-400"
-            >
-              Send
-            </button>
+      {/* ✅ Messages Scrollable */}
+      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-4">
+        {messages.map((msg, i) => (
+          <div key={i} className="w-full">
+
+            {/* User Code */}
+            {msg.role === "user" ? (
+              <div className="overflow-x-auto rounded-lg">
+                <SyntaxHighlighter
+                  language={mapLanguage(msg.language)}
+                  style={theme === "dark" ? atomOneDark : atomOneLight}
+                  showLineNumbers
+                  customStyle={{
+                    borderRadius: "12px",
+                    padding: "14px",
+                    fontSize: "13px",
+                    whiteSpace: "pre",
+                  }}
+                >
+                  {msg.content}
+                </SyntaxHighlighter>
+              </div>
+            ) : (
+              /* Assistant Explanation */
+              <div className="bg-[var(--card)] p-4 rounded-lg text-sm leading-relaxed max-w-full overflow-x-auto">
+
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {msg.content}
+                </ReactMarkdown>
+
+                {isTyping && i === messages.length - 1 && (
+                  <span className="animate-pulse ml-1">▍</span>
+                )}
+              </div>
+
+            )}
           </div>
+        ))}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* ✅ Input Fixed Bottom */}
+      <div className="border-t border-[var(--card)] p-3 shrink-0">
+        <div className="relative">
+          <textarea
+            ref={textareaRef}
+            value={input}
+            placeholder="Message CodeInsight..."
+            rows={1}
+            className="w-full bg-[var(--card)] p-4 rounded-lg resize-none focus:outline-none text-sm"
+            onChange={(e) => {
+              setInput(e.target.value);
+
+              e.target.style.height = "auto";
+              e.target.style.height = `${e.target.scrollHeight}px`;
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+          />
+
+          {/* Send Button */}
+          <button
+            onClick={handleSend}
+            className="absolute right-3 bottom-3 bg-[var(--primary)] text-white w-9 h-9 rounded-full flex items-center justify-center"
+          >
+            ➤
+          </button>
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 }
 
 export default App;

@@ -2,8 +2,41 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  background-color: #0f172a; /* dark navy */
-  color: white;
-  font-family: 'Inter', sans-serif;
+/* ---------------- LIGHT THEME ---------------- */
+:root {
+  --bg: #f8fafc;          /* cleaner white background */
+  --sidebar: #eff3f8df;     /* soft gray sidebar */
+  --card: #7fdfe43a;        /* pure white cards */
+  --primary: #06b6d4;     /* cyan accent (modern) */
+  --primary-dark: #0891b2;/* darker cyan hover */
+  --text: #0f172a;        /* dark readable text */
 }
+
+/* ---------------- DARK THEME ---------------- */
+.dark {
+  --bg: #0f172a;          /* slate background */
+  --sidebar: #1e293b;     /* sidebar dark */
+  --card: #334155;        /* cards slightly lighter */
+  --primary: #06b6d4;     /* same accent cyan */
+  --primary-dark: #0891b2;/* hover cyan */
+  --text: #f1f5f9;        /* soft white text */
+}
+
+/* Subtle horizontal scrollbar (ChatGPT-like) */
+.scroll-x {
+  overflow-x: auto;
+}
+
+.scroll-x::-webkit-scrollbar {
+  height: 6px;
+}
+
+.scroll-x::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.5);
+  border-radius: 999px;
+}
+
+.scroll-x::-webkit-scrollbar-track {
+  background: transparent;
+}
+

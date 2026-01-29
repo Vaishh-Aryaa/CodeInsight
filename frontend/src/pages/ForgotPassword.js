@@ -11,34 +11,58 @@ function ForgotPassword({ switchToLogin }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Step 1: Forgot Password Request
+  // ✅ Step 1: Forgot Password Request
   const handleForgot = async () => {
     setError("");
     setLoading(true);
+
+    if (!email.trim()) {
+      setLoading(false);
+      return setError("Email is required");
+    }
+
+    if (!email.includes("@")) {
+      setLoading(false);
+      return setError("Enter a valid email");
+    }
 
     try {
       await api.post("/api/auth/forgot-password", { email });
       setStep(2);
     } catch (err) {
-      setError(err.response?.data?.message || "Something went wrong");
+      setError(err.response?.data?.message || "Email not found");
     }
 
     setLoading(false);
   };
 
-  // Step 2: Reset Password Request
+  // ✅ Step 2: Reset Password Request
   const handleReset = async () => {
     setError("");
     setLoading(true);
 
+    if (!password.trim()) {
+      setLoading(false);
+      return setError("Password cannot be empty");
+    }
+
+    if (password.length < 6) {
+      setLoading(false);
+      return setError("Password must be at least 6 characters");
+    }
+
     try {
-      await api.post("/api/auth/reset-password", {
+      const res = await api.post("/api/auth/reset-password", {
         email,
         newPassword: password,
       });
 
-      alert("Password reset successful. Please login.");
-      switchToLogin();
+      // ✅ Auto-login after reset
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
+
+      alert("Password reset successful!");
+      window.location.reload();
     } catch (err) {
       setError(err.response?.data?.message || "Reset failed");
     }
@@ -47,24 +71,22 @@ function ForgotPassword({ switchToLogin }) {
   };
 
   return (
-    <div className="h-screen flex items-center justify-center bg-slate-900">
-      <div className="bg-slate-800 p-6 rounded w-80">
-        {/* Title */}
-        <h2 className="text-white mb-4 text-lg font-bold">
+    <div className="h-screen flex items-center justify-center bg-[var(--bg)]">
+      <div className="bg-[var(--card)] p-6 rounded w-80 text-[var(--text)]">
+        <h2 className="text-cyan-600 text-xl mb-4">
           {step === 1 ? "Forgot Password" : "Reset Password"}
         </h2>
 
-        {/* Error Message */}
         {error && (
           <p className="text-red-400 text-sm mb-3 text-center">{error}</p>
         )}
 
-        {/* ================= STEP 1 ================= */}
+        {/* ✅ STEP 1 */}
         {step === 1 && (
           <>
             <input
               placeholder="Enter your email"
-              className="w-full mb-3 p-2 rounded bg-slate-900 text-white border border-slate-700"
+              className="w-full mb-2 p-2 rounded bg-[var(--sidebar)] text-[var(--text)] border border-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
@@ -72,21 +94,21 @@ function ForgotPassword({ switchToLogin }) {
             <button
               onClick={handleForgot}
               disabled={loading}
-              className="w-full bg-cyan-500 py-2 rounded font-semibold disabled:opacity-50"
+              className="w-full bg-[var(--primary)] text-white py-2 rounded hover:bg-[var(--primary-dark)]"
             >
               {loading ? "Checking..." : "Continue"}
             </button>
 
             <button
               onClick={switchToLogin}
-              className="mt-3 text-sm text-cyan-400 hover:underline w-full"
+              className="mt-3 text-sm text-gray-500 hover:underline w-full"
             >
               Back to Login
             </button>
           </>
         )}
 
-        {/* ================= STEP 2 ================= */}
+        {/* ✅ STEP 2 */}
         {step === 2 && (
           <>
             <div className="relative mb-3">
@@ -95,13 +117,13 @@ function ForgotPassword({ switchToLogin }) {
                 placeholder="New Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full p-2 rounded bg-slate-900 text-white border border-slate-700"
+                className="w-full p-2 rounded bg-[var(--sidebar)] text-[var(--text)] border border-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500"
               />
 
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-2 top-3 text-sm text-slate-400"
+                className="absolute right-2 top-3 text-sm text-cyan-800 hover:text-cyan-500"
               >
                 {showPassword ? "Hide" : "Show"}
               </button>
@@ -110,9 +132,16 @@ function ForgotPassword({ switchToLogin }) {
             <button
               onClick={handleReset}
               disabled={loading}
-              className="w-full bg-cyan-500 py-2 rounded font-semibold disabled:opacity-50"
+              className="w-full bg-[var(--primary)] text-white py-2 rounded hover:bg-[var(--primary-dark)]"
             >
               {loading ? "Resetting..." : "Reset Password"}
+            </button>
+
+            <button
+              onClick={switchToLogin}
+              className="mt-3 text-sm text-gray-500 hover:underline w-full"
+            >
+              Back to Login
             </button>
           </>
         )}

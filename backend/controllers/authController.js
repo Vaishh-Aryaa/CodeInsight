@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
+import validator from "validator";
 
 export const resetPassword = async (req, res) => {
   try {
@@ -14,6 +15,15 @@ export const resetPassword = async (req, res) => {
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
+    }
+
+    // ✅ Check if new password matches old password
+    const isSame = await bcrypt.compare(newPassword, user.password);
+
+    if (isSame) {
+      return res.status(400).json({
+        message: "New password must be different from old password",
+      });
     }
 
     // hash new password

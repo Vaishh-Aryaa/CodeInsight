@@ -6,9 +6,19 @@ function Login({ onAuth, switchToSignup, switchToForgot }) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  
 
   const handleLogin = async () => {
-  setError(""); // clear old error
+  setError("");
+
+  // ✅ Frontend Validation
+  if (!email.trim() || !password.trim()) {
+    return setError("Email and Password are required");
+  }
+
+  if (!email.includes("@")) {
+    return setError("Please enter a valid email");
+  }
 
   try {
     const res = await api.post("/api/auth/login", {
@@ -21,19 +31,20 @@ function Login({ onAuth, switchToSignup, switchToForgot }) {
 
     onAuth();
   } catch (err) {
-    setError(err.response?.data?.error || "Login failed");
+    setError(err.response?.data?.message || "Invalid credentials");
   }
 };
 
   return (
-    <div className="h-screen flex items-center justify-center bg-slate-900">
-      <div className="bg-slate-800 p-6 rounded w-80">
-        <h2 className="text-cyan-400 text-xl mb-4">Login</h2>
+    <div className="h-screen flex items-center justify-center bg-[var(--bg)]">
+      <div className="bg-[var(--card)] p-6 rounded w-80 text-[var(--text)]">
+        <h2 className="text-cyan-600 text-xl mb-4">Login</h2>
 
         <input
           type="email"
           placeholder="Email"
-          className="w-full mb-2 p-2 rounded bg-slate-900 text-white border border-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 placeholder-slate-500"
+          value={email}
+          className="w-full mb-2 p-2 rounded bg-[var(--sidebar)] text-[var(--text)] border border-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 placeholder-slate-500"
           onChange={(e) => setEmail(e.target.value)}
         />
         <div className="relative mb-4">
@@ -42,13 +53,13 @@ function Login({ onAuth, switchToSignup, switchToForgot }) {
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full mb-2 p-2 rounded bg-slate-900 text-white border border-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 placeholder-slate-500"
+                className="w-full mb-2 p-2 rounded bg-[var(--sidebar)] text-[var(--text)] border border-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 placeholder-slate-500"
             />
 
             <button
                 type="button"
                 onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute right-2 top-3 text-sm text-slate-500 hover:text-slate-300"
+                className="absolute right-2 top-3 text-sm text-cyan-800 hover:text-cyan-500"
             >
                 {showPassword ? "Hide" : "Show"}
             </button>
@@ -57,7 +68,7 @@ function Login({ onAuth, switchToSignup, switchToForgot }) {
 
         <button
             onClick={switchToForgot}
-            className="relative bottom-3 text-cyan-400 hover:underline"
+            className="relative bottom-3 text-cyan-600 hover:underline"
         >
             Forgot password?
         </button>
@@ -68,7 +79,7 @@ function Login({ onAuth, switchToSignup, switchToForgot }) {
 
         <button
           onClick={handleLogin}
-          className="w-full bg-cyan-500 py-2 rounded"
+          className="w-full bg-[var(--primary)] text-white hover:bg-[var(--primary-dark)] py-2 rounded"
         >
           Login
         </button>
@@ -78,9 +89,9 @@ function Login({ onAuth, switchToSignup, switchToForgot }) {
             Don’t have an account?{" "}
             <button
                 onClick={switchToSignup}
-                className="text-cyan-400 hover:underline"
+                className="text-cyan-600 hover:underline"
             >
-                Sign up
+                SignUp
             </button>
         </p>
 
