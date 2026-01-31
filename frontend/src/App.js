@@ -11,9 +11,6 @@ import java from "react-syntax-highlighter/dist/esm/languages/hljs/java";
 import cpp from "react-syntax-highlighter/dist/esm/languages/hljs/cpp";
 import csharp from "react-syntax-highlighter/dist/esm/languages/hljs/csharp";
 import { atomOneDark, atomOneLight } from "react-syntax-highlighter/dist/esm/styles/hljs";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-
 
 SyntaxHighlighter.registerLanguage("javascript", js);
 SyntaxHighlighter.registerLanguage("python", python);
@@ -27,9 +24,10 @@ function App() {
     !!localStorage.getItem("token")
   );
 
-  const [user, setUser] = useState(
-  JSON.parse(localStorage.getItem("user"))
-);
+  const [user, setUser] = useState(() => {
+  const savedUser = localStorage.getItem("user");
+  return savedUser ? JSON.parse(savedUser) : null;
+});
 
   const [showSignup, setShowSignup] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
@@ -202,7 +200,7 @@ function App() {
     setMessages((prev) => [
       ...prev,
       { role: "user", content: userCode, language: "text" },
-      { role: "assistant", content: "__LOADING__" },
+      { role: "assistant", content: "Thinking..." },
     ]);
 
     // Save user msg
@@ -283,7 +281,14 @@ function App() {
   /* ---------------- AUTH SCREENS ---------------- */
   if (!isAuth) {
     if (showForgot) {
-      return <ForgotPassword switchToLogin={() => setShowForgot(false)} />;
+      return <ForgotPassword
+                switchToLogin={() => setShowForgot(false)}
+                onAuth={() => {
+                  setIsAuth(true);
+                  setUser(JSON.parse(localStorage.getItem("user")));
+                }}
+              />
+
     }
 
     return showSignup ? (
@@ -490,17 +495,13 @@ function App() {
               </div>
             ) : (
               /* Assistant Explanation */
-              <div className="bg-[var(--card)] p-4 rounded-lg text-sm leading-relaxed max-w-full overflow-x-auto">
-
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {msg.content}
-                </ReactMarkdown>
+              <div className="bg-[var(--card)] p-4 rounded-lg text-sm leading-relaxed">
+                {formatExplanation(msg.content)}
 
                 {isTyping && i === messages.length - 1 && (
                   <span className="animate-pulse ml-1">▍</span>
                 )}
               </div>
-
             )}
           </div>
         ))}

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import api from "../api";
 
-function ForgotPassword({ switchToLogin }) {
+function ForgotPassword({ switchToLogin, onAuth }) {
   const [email, setEmail] = useState("");
   const [step, setStep] = useState(1);
 
@@ -62,7 +62,7 @@ function ForgotPassword({ switchToLogin }) {
       localStorage.setItem("user", JSON.stringify(res.data.user));
 
       alert("Password reset successful!");
-      window.location.reload();
+      onAuth();
     } catch (err) {
       setError(err.response?.data?.message || "Reset failed");
     }

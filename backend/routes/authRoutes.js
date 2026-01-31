@@ -120,9 +120,20 @@ router.post("/reset-password", async (req, res) => {
 
   await user.save();
 
-  res.json({
-    message: "Password reset successful",
-  });
+  const token = jwt.sign(
+  { id: user._id },
+  process.env.JWT_SECRET,
+  { expiresIn: "7d" }
+);
+
+res.json({
+  token,
+  user: {
+    id: user._id,
+    name: user.name,
+    email: user.email,
+  },
+});
 });
 
 
